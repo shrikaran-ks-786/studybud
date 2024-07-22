@@ -6,6 +6,16 @@ from django.db.models import Q
 from django.http import HttpResponse
 from .models import Room,Topic,Message,User
 from .forms import RoomForm,NewTopicForm,Myusercreationform
+from rest_framework import status
+from rest_framework.response import Response
+from django.core.mail import send_mail
+from django.conf import settings
+import os
+from groq import Groq
+
+client = Groq(
+    api_key="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",
+)
 
 
 def Loginpage(request):
@@ -49,8 +59,13 @@ def Registeruser(request):
             user.save()
             login(request,user)
             return redirect("home")
+            # return Response({"data": {}, "status": True, "message": "Your account is created"}, status=status.HTTP_201_CREATED)
+
         else:
             messages.error(request,"An error occured during reg")
+            # return Response({"data": {}, "status": False, "message": "Your account is not created"}, status=status.HTTP_400_BAD_REQUEST)
+
+
 
     return render(request,"base/login_register.html",{"form" : form})
 
@@ -70,7 +85,7 @@ def home(request):
     context = {"rooms":rooms,"topics" : topics,"room_count" : room_count}
     return render(request,"base/home.html",context)
 
-def room(request,pk):
+# def room(request,pk):
     room = Room.objects.get(id=pk)
     msg = room.message_set.all().order_by("-created")
     participants = room.participants.all()
@@ -85,24 +100,78 @@ def room(request,pk):
             body=request.POST.get('body')
         )
         room.participants.add(request.user)
+        print(settings.EMAIL_HOST_USER,room.host.email)
+
+        if room.host.email:
+            subject = 'this email is from django server'
+            message = 'this is a test email'
+            from_email = settings.EMAIL_HOST_USER
+            recipient_list = ["shrikaranks@gmail.com"]
+            send_mail(subject, message, from_email, recipient_list)
+
         return redirect('room',pk=room.id)
     context = {"room" : room,"roommessages" : msg,"participants":participants}
     return render(request,"base/room.html",context)
 
+@login_required(login_url='login')
+def room(request, pk):
+    room = Room.objects.get(id=pk)
+    msg = room.message_set.all().order_by("-created")
+    participants = room.participants.all()
 
-# @login_required(login_url='login')
-# def createRoom(request):
-#     if request.method == 'POST':
-#         form = RoomForm(request.POST)
-#         if form.is_valid():
-#             room = form.save(commit=False)
-#             room.host = request.user
-#             room.save()
-#             return redirect("home")
-#     else:
-#         form = RoomForm()
-#         context = {"form" : form}
-#         return render(request,'base/room_form.html',context)
+    for m in msg:
+        m.is_host = (request.user == m.user)
+
+    if request.method == "POST":
+        roommsg = Message.objects.create(
+            user=request.user,
+            room=room,
+            body=request.POST.get('body')
+        )
+        room.participants.add(request.user)
+        print(settings.EMAIL_HOST_USER, room.host.email)
+
+        # Check if the number of comments is a multiple of 2
+        if msg.count() % 2 == 0 and msg.count() >= 2:
+            # Retrieve the last two comments
+            last_two_comments = msg[:2]
+
+            # Generate a summary using Groq
+            summary = generate_summary(last_two_comments)
+
+            # Send summary via email to room host
+            send_summary_to_host(summary, room.host.email)
+
+        return redirect('room', pk=room.id)
+    
+    context = {"room": room, "roommessages": msg, "participants": participants}
+    return render(request, "base/room.html", context)
+
+
+def generate_summary(comments):
+    # Function to generate a summary using Groq
+    # Example implementation, modify as per your Groq usage
+    content = "\n".join(comment.body for comment in comments)
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {"role": "user", "content": f"Please provide a short summary of:\n{content}"}
+        ],
+        model="llama3-8b-8192",
+    )
+    # Assuming Groq returns a summary
+    summary = chat_completion.choices[0].message.content
+    return summary
+
+
+def send_summary_to_host(summary, host_email):
+    # Function to send summary via email
+    subject = 'Summary of Recent Comments'
+    message = summary
+    from_email = settings.EMAIL_HOST_USER
+    recipient_list = [host_email]
+    send_mail(subject, message, from_email, recipient_list)
+
+
 
 @login_required(login_url='login')
 def createRoom(request):
