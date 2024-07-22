@@ -62,7 +62,7 @@ def Registeruser(request):
             # return Response({"data": {}, "status": True, "message": "Your account is created"}, status=status.HTTP_201_CREATED)
 
         else:
-            messages.error(request,"An error occured during reg")
+            messages.error(request,"An error occurred during reg")
             # return Response({"data": {}, "status": False, "message": "Your account is not created"}, status=status.HTTP_400_BAD_REQUEST)
 
 
