@@ -85,33 +85,33 @@ def home(request):
     context = {"rooms":rooms,"topics" : topics,"room_count" : room_count}
     return render(request,"base/home.html",context)
 
-# def room(request,pk):
-    room = Room.objects.get(id=pk)
-    msg = room.message_set.all().order_by("-created")
-    participants = room.participants.all()
+# # def room(request,pk):
+#     room = Room.objects.get(id=pk)
+#     msg = room.message_set.all().order_by("-created")
+#     participants = room.participants.all()
 
-    for m in msg:
-        m.is_host = (request.user == m.user) 
+#     for m in msg:
+#         m.is_host = (request.user == m.user) 
 
-    if request.method == "POST":
-        roommsg = Message.objects.create(
-            user=request.user,
-            room=room,
-            body=request.POST.get('body')
-        )
-        room.participants.add(request.user)
-        print(settings.EMAIL_HOST_USER,room.host.email)
+#     if request.method == "POST":
+#         roommsg = Message.objects.create(
+#             user=request.user,
+#             room=room,
+#             body=request.POST.get('body')
+#         )
+#         room.participants.add(request.user)
+#         print(settings.EMAIL_HOST_USER,room.host.email)
 
-        if room.host.email:
-            subject = 'this email is from django server'
-            message = 'this is a test email'
-            from_email = settings.EMAIL_HOST_USER
-            recipient_list = ["shrikaranks@gmail.com"]
-            send_mail(subject, message, from_email, recipient_list)
+#         if room.host.email:
+#             subject = 'this email is from django server'
+#             message = 'this is a test email'
+#             from_email = settings.EMAIL_HOST_USER
+#             recipient_list = ["shrikaranks@gmail.com"]
+#             send_mail(subject, message, from_email, recipient_list)
 
-        return redirect('room',pk=room.id)
-    context = {"room" : room,"roommessages" : msg,"participants":participants}
-    return render(request,"base/room.html",context)
+#         return redirect('room',pk=room.id)
+#     context = {"room" : room,"roommessages" : msg,"participants":participants}
+#     return render(request,"base/room.html",context)
 
 @login_required(login_url='login')
 def room(request, pk):
