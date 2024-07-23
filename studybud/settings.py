@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -80,12 +81,12 @@ WSGI_APPLICATION = 'studybud.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'sample',    # Replace with your database name
-        'USER': 'postgres',    # Replace with your database username
-        'PASSWORD': 'KAnani786.COM',  # Replace with your database password
-        'HOST': 'localhost',    # Or your database host
-        'PORT': '5432',         # Or your database port
+        'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
+        'NAME': os.getenv('DB_NAME', 'studybud'),
+        'USER': os.getenv('DB_USER', 'postgres'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'KAnani786.COM'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 
@@ -142,4 +143,25 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'shrikaranksmycoding@gmail.com'  # Replace with your Gmail email address
 EMAIL_HOST_PASSWORD = 'crta nawz qwru dgpm'     # Replace with your Gmail password or app-specific password
+
+# settings.py
+
+# Celery Configuration
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+
+# settings.py
+
+CELERY_BEAT_SCHEDULE = {
+    'process_rooms_and_send_summaries_task': {
+        'task': 'base.tasks.process_rooms_and_send_summaries',
+        'schedule': 120,  #2 min in sec
+    },
+}
+
+
 
